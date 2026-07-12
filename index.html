@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F.Y.B.A. Attendance Register</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3A54">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFE8D8;
+    --paper-dark:#E4DAC2;
+    --card:#F8F4E9;
+    --ink:#241F1A;
+    --ink-soft:#5B5347;
+    --ink-faint:#8B8272;
+    --navy:#1F3A54;
+    --navy-deep:#16283C;
+    --maroon:#8C2F26;
+    --sage:#3F6B45;
+    --sage-bg:#E3ECDF;
+    --red:#A33A2E;
+    --red-bg:#F3E1DD;
+    --amber:#9C6B1F;
+    --amber-bg:#F0E4CC;
+    --rule:#CBBFA0;
+    --rule-soft:#DCD2B8;
+    --radius:6px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(transparent, transparent 27px, var(--rule-soft) 27px, var(--rule-soft) 28px);
+    font-family:'Inter',system-ui,sans-serif;
+    color:var(--ink);
+    padding:0 0 4rem 0;
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:2rem 2rem 0 3.2rem;position:relative;}
+  .punch-col{
+    position:absolute; left:0; top:0; bottom:0; width:2.2rem;
+    display:flex; flex-direction:column; align-items:center; gap:2.4rem; padding-top:3rem;
+  }
+  .punch-col span{
+    width:14px;height:14px;border-radius:50%;
+    background:var(--paper);
+    box-shadow: inset 0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,0.15);
+  }
+  header{
+    border-bottom:3px double var(--navy);
+    padding-bottom:1rem;
+    margin-bottom:1.2rem;
+  }
+  .crest-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;}
+  h1{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    font-size:1.7rem;
+    margin:0 0 0.15rem 0;
+    color:var(--navy-deep);
+    letter-spacing:0.01em;
+  }
+  .subtitle{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+  .stamp{
+    font-family:'IBM Plex Mono',monospace;
+    border:2px solid var(--navy);
+    color:var(--navy);
+    border-radius:50%;
+    width:76px;height:76px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transform:rotate(-6deg);
+    flex-shrink:0;
+    background:rgba(31,58,84,0.03);
+  }
+  .stamp.short{border-color:var(--maroon);color:var(--maroon);background:rgba(140,47,38,0.03);}
+  .stamp .pct{font-size:1.15rem;font-weight:600;line-height:1;}
+  .stamp .lbl{font-size:0.5rem;letter-spacing:0.06em;margin-top:2px;}
+
+  nav.tabs{display:flex;gap:2px;margin-bottom:1.4rem;}
+  nav.tabs button{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.75rem;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    padding:0.55rem 1rem;
+    background:var(--paper-dark);
+    border:1px solid var(--rule);
+    border-bottom:none;
+    border-radius:5px 5px 0 0;
+    color:var(--ink-soft);
+    cursor:pointer;
+    position:relative;
+    top:1px;
+  }
+  nav.tabs button.active{
+    background:var(--card);
+    color:var(--navy-deep);
+    font-weight:600;
+    border-bottom:1px solid var(--card);
+  }
+  .panel{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-radius:0 var(--radius) var(--radius) var(--radius);
+    padding:1.4rem 1.6rem;
+    margin-bottom:2rem;
+  }
+  .panel h2{
+    font-family:'Source Serif 4',serif;
+    font-size:1.05rem;
+    margin:0 0 1rem 0;
+    color:var(--navy-deep);
+    display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+  }
+  .date-nav{display:flex;align-items:center;gap:0.6rem;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;}
+  .date-nav button{
+    background:none;border:1px solid var(--rule);border-radius:4px;
+    width:28px;height:28px;cursor:pointer;color:var(--navy);font-size:0.9rem;
+  }
+  .date-nav input[type=date]{
+    font-family:'IBM Plex Mono',monospace;
+    border:1px solid var(--rule);border-radius:4px;padding:0.3rem 0.5rem;background:#fff;
+  }
+  .period-row{
+    display:grid;
+    grid-template-columns:90px 1fr auto;
+    align-items:center;
+    gap:1rem;
+    padding:0.65rem 0;
+    border-bottom:1px solid var(--rule-soft);
+  }
+  .period-row:last-child{border-bottom:none;}
+  .p-time{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-faint);}
+  .p-subj{font-size:0.92rem;}
+  .p-subj .code{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-faint);margin-left:6px;}
+  .status-btns{display:flex;gap:6px;}
+  .status-btns button{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.68rem;letter-spacing:0.03em;
+    padding:0.35rem 0.6rem;
+    border-radius:4px;
+    border:1px solid var(--rule);
+    background:#fff;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .status-btns button.p.on{background:var(--sage-bg);border-color:var(--sage);color:var(--sage);font-weight:600;}
+  .status-btns button.a.on{background:var(--red-bg);border-color:var(--red);color:var(--red);font-weight:600;}
+  .status-btns button.c.on{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);font-weight:600;}
+  .empty-note{font-size:0.85rem;color:var(--ink-faint);font-style:italic;padding:0.8rem 0;}
+
+  table.ledger{width:100%;border-collapse:collapse;font-size:0.85rem;}
+  table.ledger th{
+    text-align:left;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-faint);
+    border-bottom:2px solid var(--navy);padding:0.4rem 0.5rem;
+  }
+  table.ledger td{padding:0.55rem 0.5rem;border-bottom:1px solid var(--rule-soft);vertical-align:middle;}
+  table.ledger tr:last-child td{border-bottom:none;}
+  .bar-wrap{width:90px;height:7px;background:var(--paper-dark);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;}
+  .bar-fill{height:100%;}
+  .mini-stamp{
+    font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:600;
+    padding:2px 7px;border-radius:3px;letter-spacing:0.03em;
+  }
+  .mini-stamp.ok{background:var(--sage-bg);color:var(--sage);}
+  .mini-stamp.short{background:var(--red-bg);color:var(--red);}
+  .mini-stamp.none{background:var(--paper-dark);color:var(--ink-faint);}
+
+  .overall-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.9rem;margin-bottom:1.4rem;}
+  .metric{background:var(--paper-dark);border-radius:5px;padding:0.8rem 0.9rem;}
+  .metric .n{font-family:'IBM Plex Mono',monospace;font-size:1.35rem;font-weight:600;color:var(--navy-deep);}
+  .metric .l{font-size:0.7rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin-top:2px;}
+
+  .hist-day{padding:0.7rem 0;border-bottom:1px solid var(--rule-soft);}
+  .hist-day:last-child{border-bottom:none;}
+  .hist-day .d-head{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--ink-soft);margin-bottom:0.4rem;font-weight:600;}
+  .hist-chip{display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;padding:3px 9px;border-radius:4px;margin:2px 4px 2px 0;border:1px solid var(--rule);background:#fff;cursor:pointer;}
+  .hist-chip.p{background:var(--sage-bg);border-color:var(--sage);color:var(--sage);}
+  .hist-chip.a{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+  .hist-chip.c{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+
+  .settings-row{display:grid;grid-template-columns:100px 1fr;gap:1rem;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--rule-soft);}
+  .settings-row:last-of-type{border-bottom:none;}
+  .settings-row input[type=text]{
+    font-family:'Inter';font-size:0.85rem;padding:0.4rem 0.6rem;border:1px solid var(--rule);border-radius:4px;background:#fff;width:100%;
+  }
+  .sem-row{display:grid;grid-template-columns:110px 1fr 1fr;gap:0.8rem;align-items:center;padding:0.5rem 0;}
+  .sem-row input[type=date]{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;padding:0.35rem 0.5rem;border:1px solid var(--rule);border-radius:4px;width:100%;}
+  .danger-btn{
+    margin-top:1rem;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;
+    background:var(--red-bg);color:var(--red);border:1px solid var(--red);
+    border-radius:4px;padding:0.5rem 1rem;cursor:pointer;
+  }
+  .save-note{font-size:0.72rem;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;margin-top:0.6rem;}
+  .loading{padding:2rem;text-align:center;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;}
+  select{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;padding:0.3rem 0.5rem;border:1px solid var(--rule);border-radius:4px;background:#fff;}
+  @media(max-width:600px){
+    .wrap{padding:1.4rem 1rem 0 2.4rem;}
+    .period-row{grid-template-columns:1fr;gap:0.4rem;}
+    .status-btns{margin-top:0.2rem;}
+    table.ledger{font-size:0.75rem;}
+    .bar-wrap{width:50px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="punch-col"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+
+  <header>
+    <div class="crest-row">
+      <div>
+        <h1>F.Y.B.A. Attendance Register</h1>
+        <div class="subtitle">K.C. College &middot; HSNC University &middot; A.Y. 2026&ndash;27</div>
+      </div>
+      <div id="stampBox"></div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="today" class="active">Today</button>
+    <button data-tab="subjects">Subjects</button>
+    <button data-tab="history">History</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+
+  <div id="content"><div class="loading">Opening the register&hellip;</div></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'fyba-attendance-v1';
+
+const TIMETABLE = {
+  Monday:    [['PSY1','9:30\u201310:30'],['POL2','10:30\u201311:30'],['GE','11:30\u201312:30']],
+  Tuesday:   [['PSY1','9:30\u201310:30'],['POL2','10:30\u201311:30'],['GE','11:30\u201312:30']],
+  Wednesday: [['VAC','7:30\u20138:30'],['POL1','8:30\u20139:30'],['AEC','9:30\u201310:30'],['ENG','10:30\u201311:30']],
+  Thursday:  [['AEC','7:30\u20138:30'],['ENG','8:30\u20139:30'],['VAC','9:30\u201310:30'],['PSY2','10:30\u201311:30']],
+  Friday:    [['VOC','7:30\u20138:30'],['ENG','8:30\u20139:30'],['AEC','9:30\u201310:30'],['PSY2','10:30\u201311:30']],
+  Saturday:  [['VOC','7:30\u20138:30'],['POL1','8:30\u20139:30'],['IKS','9:30\u201310:30'],['ENG','10:30\u201311:30']],
+  Sunday:    []
+};
+
+const DEFAULT_SUBJECTS = {
+  PSY1:'Psychology \u2013 Paper I', PSY2:'Psychology \u2013 Paper II',
+  POL1:'Political Science \u2013 Paper I', POL2:'Political Science \u2013 Paper II',
+  ENG:'English', AEC:'Ability Enhancement Course', VAC:'Value Added Course',
+  IKS:'Indian Knowledge System', VOC:'Vocational Course', GE:'Generic Elective'
+};
+
+const DEFAULT_SEMS = {
+  sem1:{label:'Semester I', start:'2026-06-30', end:'2026-11-15'},
+  sem2:{label:'Semester II', start:'2026-11-16', end:'2027-04-30'}
+};
+
+let state = { subjects:{...DEFAULT_SUBJECTS}, semesters:JSON.parse(JSON.stringify(DEFAULT_SEMS)), records:{} };
+let activeTab = 'today';
+let todayDate = new Date();
+let selectedDate = fmt(todayDate);
+let saveTimer = null;
+
+function fmt(d){ return d.toISOString().slice(0,10); }
+function dayName(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+}
+function prettyDate(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short', year:'numeric'});
+}
+function addDays(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return fmt(d);
+}
+
+async function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      state.subjects = {...DEFAULT_SUBJECTS, ...(parsed.subjects||{})};
+      state.semesters = parsed.semesters || JSON.parse(JSON.stringify(DEFAULT_SEMS));
+      state.records = parsed.records || {};
+    }
+  }catch(e){
+    console.log('No existing register found, starting fresh.');
+  }
+  render();
+}
+
+function scheduleSave(){
+  const note = document.getElementById('saveNote');
+  if(note) note.textContent = 'Saving\u2026';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const n = document.getElementById('saveNote');
+      if(n) n.textContent = 'Saved to this device.';
+    }catch(e){
+      const n = document.getElementById('saveNote');
+      if(n) n.textContent = 'Save failed \u2014 try again.';
+    }
+  }, 350);
+}
+
+function setStatus(dateStr, code, status){
+  if(!state.records[dateStr]) state.records[dateStr] = {};
+  if(state.records[dateStr][code] === status){
+    delete state.records[dateStr][code];
+  }else{
+    state.records[dateStr][code] = status;
+  }
+  if(Object.keys(state.records[dateStr]).length === 0) delete state.records[dateStr];
+  scheduleSave();
+  render();
+}
+
+function computeStats(filterFn){
+  const stats = {};
+  for(const code in state.subjects) stats[code] = {held:0, present:0, absent:0, cancelled:0};
+  for(const dateStr in state.records){
+    if(filterFn && !filterFn(dateStr)) continue;
+    const day = state.records[dateStr];
+    for(const code in day){
+      if(!stats[code]) continue;
+      const s = day[code];
+      stats[code].held++;
+      if(s==='present') stats[code].present++;
+      else if(s==='absent') stats[code].absent++;
+      else if(s==='cancelled') stats[code].cancelled++;
+    }
+  }
+  return stats;
+}
+
+function overallPct(stats){
+  let p=0, a=0;
+  for(const code in stats){ p+=stats[code].present; a+=stats[code].absent; }
+  const total = p+a;
+  return total===0 ? null : Math.round((p/total)*100);
+}
+
+function renderStamp(){
+  const stats = computeStats();
+  const pct = overallPct(stats);
+  const box = document.getElementById('stampBox');
+  if(pct===null){
+    box.innerHTML = `<div class="stamp"><span class="pct">\u2014</span><span class="lbl">no data</span></div>`;
+    return;
+  }
+  const cls = pct>=75 ? '' : 'short';
+  const lbl = pct>=75 ? 'in order' : 'short';
+  box.innerHTML = `<div class="stamp ${cls}"><span class="pct">${pct}%</span><span class="lbl">${lbl}</span></div>`;
+}
+
+function subjName(code){
+  return state.subjects[code] || code;
+}
+
+function renderToday(){
+  const day = dayName(selectedDate);
+  const periods = TIMETABLE[day] || [];
+  const dayRecords = state.records[selectedDate] || {};
+  let rows = '';
+  if(periods.length===0){
+    rows = `<div class="empty-note">No lectures scheduled \u2014 it's a ${day}.</div>`;
+  }else{
+    periods.forEach(([code,time])=>{
+      const st = dayRecords[code];
+      rows += `<div class="period-row">
+        <div class="p-time">${time}</div>
+        <div class="p-subj">${subjName(code)}<span class="code">${code}</span></div>
+        <div class="status-btns">
+          <button class="p ${st==='present'?'on':''}" onclick="setStatus('${selectedDate}','${code}','present')">Present</button>
+          <button class="a ${st==='absent'?'on':''}" onclick="setStatus('${selectedDate}','${code}','absent')">Absent</button>
+          <button class="c ${st==='cancelled'?'on':''}" onclick="setStatus('${selectedDate}','${code}','cancelled')">Cancelled</button>
+        </div>
+      </div>`;
+    });
+  }
+  return `
+  <div class="panel">
+    <h2>
+      <span>${prettyDate(selectedDate)}</span>
+      <div class="date-nav">
+        <button onclick="shiftDate(-1)">&larr;</button>
+        <input type="date" id="dateInput" value="${selectedDate}">
+        <button onclick="shiftDate(1)">&rarr;</button>
+        <button onclick="goToday()" style="width:auto;padding:0 10px;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;">Today</button>
+      </div>
+    </h2>
+    ${rows}
+    <div class="save-note" id="saveNote">&nbsp;</div>
+  </div>`;
+}
+
+function renderSubjects(){
+  const stats = computeStats();
+  let rows = '';
+  for(const code in state.subjects){
+    const s = stats[code];
+    const total = s.present + s.absent;
+    const pct = total===0 ? null : Math.round((s.present/total)*100);
+    const barColor = pct===null ? 'var(--rule)' : (pct>=75 ? 'var(--sage)' : 'var(--red)');
+    const stampCls = pct===null ? 'none' : (pct>=75 ? 'ok' : 'short');
+    const stampTxt = pct===null ? 'no data' : (pct>=75 ? 'in order' : 'short');
+    rows += `<tr>
+      <td>${subjName(code)}<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--ink-faint);">${code}</div></td>
+      <td>${s.held}</td>
+      <td>${s.present}</td>
+      <td>${s.absent}</td>
+      <td>${s.cancelled}</td>
+      <td>
+        <span class="bar-wrap"><span class="bar-fill" style="width:${pct===null?0:pct}%;background:${barColor};"></span></span>
+        <span class="mini-stamp ${stampCls}">${pct===null? '\u2014' : pct+'%'} &middot; ${stampTxt}</span>
+      </td>
+    </tr>`;
+  }
+  return `
+  <div class="panel">
+    <h2>Subject-wise ledger</h2>
+    <table class="ledger">
+      <thead><tr><th>Subject</th><th>Held</th><th>Present</th><th>Absent</th><th>Cancelled</th><th>Attendance</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-size:0.72rem;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;margin-top:1rem;">75% is the usual University of Mumbai eligibility threshold. Cancelled lectures are excluded from the percentage.</p>
+  </div>`;
+}
+
+function renderOverall(){
+  const stats = computeStats();
+  let held=0, present=0, absent=0, cancelled=0;
+  for(const c in stats){ held+=stats[c].held; present+=stats[c].present; absent+=stats[c].absent; cancelled+=stats[c].cancelled; }
+  const pct = overallPct(stats);
+
+  const semRows = Object.entries(state.semesters).map(([key,sem])=>{
+    const semStats = computeStats(d => d>=sem.start && d<=sem.end);
+    const p = overallPct(semStats);
+    const cls = p===null?'none':(p>=75?'ok':'short');
+    return `<tr><td>${sem.label}</td><td>${sem.start} &ndash; ${sem.end}</td><td><span class="mini-stamp ${cls}">${p===null?'no data':p+'%'}</span></td></tr>`;
+  }).join('');
+
+  return `
+  <div class="panel">
+    <h2>Overall standing</h2>
+    <div class="overall-grid">
+      <div class="metric"><div class="n">${held}</div><div class="l">Lectures held</div></div>
+      <div class="metric"><div class="n">${present}</div><div class="l">Present</div></div>
+      <div class="metric"><div class="n">${absent}</div><div class="l">Absent</div></div>
+      <div class="metric"><div class="n">${cancelled}</div><div class="l">Cancelled</div></div>
+      <div class="metric"><div class="n">${pct===null?'\u2014':pct+'%'}</div><div class="l">Overall</div></div>
+    </div>
+    <table class="ledger">
+      <thead><tr><th>Semester</th><th>Range</th><th>Attendance</th></tr></thead>
+      <tbody>${semRows}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderHistory(){
+  const dates = Object.keys(state.records).sort().reverse();
+  if(dates.length===0){
+    return `<div class="panel"><h2>History</h2><div class="empty-note">Nothing marked yet. Start on the Today tab.</div></div>`;
+  }
+  let rows = '';
+  dates.slice(0,60).forEach(dateStr=>{
+    const day = state.records[dateStr];
+    let chips = '';
+    for(const code in day){
+      const st = day[code];
+      const letter = st==='present'?'P':st==='absent'?'A':'C';
+      chips += `<span class="hist-chip ${st[0]}" onclick="cycleFromHistory('${dateStr}','${code}')">${subjName(code)} &middot; ${letter}</span>`;
+    }
+    rows += `<div class="hist-day"><div class="d-head">${prettyDate(dateStr)}</div>${chips}</div>`;
+  });
+  return `<div class="panel"><h2>History</h2>${rows}
+    <p style="font-size:0.72rem;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;margin-top:0.8rem;">Tap a chip to cycle Present &rarr; Absent &rarr; Cancelled &rarr; clear.</p>
+  </div>`;
+}
+
+function cycleFromHistory(dateStr, code){
+  const order = ['present','absent','cancelled', null];
+  const cur = state.records[dateStr][code];
+  const idx = order.indexOf(cur);
+  const next = order[(idx+1)%order.length];
+  if(next===null){ delete state.records[dateStr][code]; if(Object.keys(state.records[dateStr]).length===0) delete state.records[dateStr]; }
+  else state.records[dateStr][code] = next;
+  scheduleSave();
+  render();
+}
+
+function renderSettings(){
+  let subjRows = '';
+  for(const code in state.subjects){
+    subjRows += `<div class="settings-row">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-faint);">${code}</div>
+      <input type="text" value="${state.subjects[code]}" onchange="renameSubject('${code}', this.value)">
+    </div>`;
+  }
+  let semRows = '';
+  for(const key in state.semesters){
+    const sem = state.semesters[key];
+    semRows += `<div class="sem-row">
+      <input type="text" value="${sem.label}" onchange="editSem('${key}','label',this.value)">
+      <input type="date" value="${sem.start}" onchange="editSem('${key}','start',this.value)">
+      <input type="date" value="${sem.end}" onchange="editSem('${key}','end',this.value)">
+    </div>`;
+  }
+  return `
+  <div class="panel">
+    <h2>Subject names</h2>
+    ${subjRows}
+  </div>
+  <div class="panel">
+    <h2>Semester dates</h2>
+    ${semRows}
+  </div>
+  <div class="panel">
+    <h2>Reset</h2>
+    <p style="font-size:0.85rem;color:var(--ink-soft);">Clears every marked lecture. Subject names and semester dates are kept.</p>
+    <button class="danger-btn" onclick="resetRecords()">Clear all attendance records</button>
+  </div>`;
+}
+
+function renameSubject(code, val){
+  state.subjects[code] = val || DEFAULT_SUBJECTS[code];
+  scheduleSave();
+}
+function editSem(key, field, val){
+  state.semesters[key][field] = val;
+  scheduleSave();
+}
+function resetRecords(){
+  if(confirm('This clears every present/absent/cancelled mark for the whole year. Continue?')){
+    state.records = {};
+    scheduleSave();
+    render();
+  }
+}
+
+function shiftDate(n){ selectedDate = addDays(selectedDate, n); render(); }
+function goToday(){ selectedDate = fmt(new Date()); render(); }
+
+function render(){
+  renderStamp();
+  const c = document.getElementById('content');
+  if(activeTab==='today') c.innerHTML = renderToday();
+  else if(activeTab==='subjects') c.innerHTML = renderSubjects();
+  else if(activeTab==='overall') c.innerHTML = renderOverall();
+  else if(activeTab==='history') c.innerHTML = renderHistory();
+  else if(activeTab==='settings') c.innerHTML = renderSettings();
+
+  if(activeTab==='today'){
+    const di = document.getElementById('dateInput');
+    if(di) di.addEventListener('change', e=>{ selectedDate = e.target.value; render(); });
+  }
+}
+
+document.getElementById('tabs').addEventListener('click', e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  activeTab = e.target.dataset.tab;
+  render();
+});
+
+const tabsNav = document.getElementById('tabs');
+const overallBtn = document.createElement('button');
+overallBtn.textContent = 'Overall';
+overallBtn.dataset.tab = 'overall';
+tabsNav.insertBefore(overallBtn, tabsNav.children[3]);
+
+loadState();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
