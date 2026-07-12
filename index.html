@@ -239,8 +239,11 @@
   <div id="content"><div class="loading">Opening the register&hellip;</div></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
 const STORAGE_KEY = 'fyba-attendance-v1';
+const SYNC_KEY = 'fyba-sync-config-v1';
 
 const TIMETABLE = {
   Monday:    [['PSY1','9:30\u201310:30'],['POL2','10:30\u201311:30'],['GE','11:30\u201312:30']],
@@ -285,6 +288,75 @@ function addDays(dateStr, n){
   return fmt(d);
 }
 
+let syncConfig = null;
+let db = null;
+let syncUnsub = null;
+let applyingRemote = false;
+let syncStatus = 'off';
+
+function loadSyncConfig(){
+  try{
+    const raw = localStorage.getItem(SYNC_KEY);
+    if(raw) syncConfig = JSON.parse(raw);
+  }catch(e){ syncConfig = null; }
+}
+
+function connectSync(configText, code){
+  let cfg;
+  try{ cfg = JSON.parse(configText); }
+  catch(e){ alert('That does not look like valid Firebase config JSON. Copy the object shown in your Firebase console exactly.'); return; }
+  if(!code || !code.trim()){ alert('Choose a sync code first \u2014 the same code on every device.'); return; }
+  syncConfig = { firebase: cfg, code: code.trim() };
+  localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+  initFirebaseSync();
+}
+
+function disconnectSync(){
+  syncConfig = null;
+  localStorage.removeItem(SYNC_KEY);
+  if(syncUnsub){ syncUnsub(); syncUnsub = null; }
+  db = null;
+  syncStatus = 'off';
+  render();
+}
+
+function initFirebaseSync(){
+  if(!syncConfig) { syncStatus = 'off'; return; }
+  try{
+    syncStatus = 'connecting';
+    if(!firebase.apps || firebase.apps.length === 0){
+      firebase.initializeApp(syncConfig.firebase);
+    }
+    db = firebase.firestore();
+    const ref = db.collection('registers').doc(syncConfig.code);
+    if(syncUnsub) syncUnsub();
+    syncUnsub = ref.onSnapshot(snap=>{
+      syncStatus = 'connected';
+      if(snap.exists){
+        applyRemoteState(snap.data());
+      }else{
+        ref.set(state).catch(()=>{});
+      }
+      render();
+    }, err=>{
+      syncStatus = 'error';
+      render();
+    });
+  }catch(e){
+    syncStatus = 'error';
+    render();
+  }
+}
+
+function applyRemoteState(data){
+  applyingRemote = true;
+  state.subjects = {...DEFAULT_SUBJECTS, ...(data.subjects||{})};
+  state.semesters = data.semesters || JSON.parse(JSON.stringify(DEFAULT_SEMS));
+  state.records = data.records || {};
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  applyingRemote = false;
+}
+
 async function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -297,18 +369,27 @@ async function loadState(){
   }catch(e){
     console.log('No existing register found, starting fresh.');
   }
+  loadSyncConfig();
+  if(syncConfig) initFirebaseSync();
   render();
 }
 
 function scheduleSave(){
+  if(applyingRemote) return;
   const note = document.getElementById('saveNote');
   if(note) note.textContent = 'Saving\u2026';
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{
     try{
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      const n = document.getElementById('saveNote');
-      if(n) n.textContent = 'Saved to this device.';
+      if(db && syncConfig){
+        db.collection('registers').doc(syncConfig.code).set(state)
+          .then(()=>{ const n = document.getElementById('saveNote'); if(n) n.textContent = 'Saved \u2014 synced across devices.'; })
+          .catch(()=>{ const n = document.getElementById('saveNote'); if(n) n.textContent = 'Saved on this device \u2014 sync failed.'; });
+      }else{
+        const n = document.getElementById('saveNote');
+        if(n) n.textContent = 'Saved to this device.';
+      }
     }catch(e){
       const n = document.getElementById('saveNote');
       if(n) n.textContent = 'Save failed \u2014 try again.';
@@ -519,7 +600,22 @@ function renderSettings(){
       <input type="date" value="${sem.end}" onchange="editSem('${key}','end',this.value)">
     </div>`;
   }
+  const statusLabel = {off:'Not connected \u2014 saving to this device only.', connecting:'Connecting\u2026', connected:'Connected \u2014 syncing across devices.', error:'Could not connect. Check the config and sync code.'}[syncStatus];
+  const statusCls = {off:'none', connecting:'none', connected:'ok', error:'short'}[syncStatus];
   return `
+  <div class="panel">
+    <h2>Cloud sync</h2>
+    <p style="font-size:0.85rem;color:var(--ink-soft);">Paste your Firebase project config and pick a private sync code. Use the exact same config and code on every device to keep them in step.</p>
+    <span class="mini-stamp ${statusCls}" style="margin-bottom:0.8rem;display:inline-block;">${statusLabel}</span>
+    <div style="margin-top:0.6rem;">
+      <textarea id="fbConfigInput" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...", ...}' style="width:100%;min-height:90px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;padding:0.5rem;border:1px solid var(--rule);border-radius:4px;">${syncConfig ? JSON.stringify(syncConfig.firebase) : ''}</textarea>
+    </div>
+    <div style="margin-top:0.6rem;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+      <input type="text" id="syncCodeInput" placeholder="private sync code" value="${syncConfig ? syncConfig.code : ''}" style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;padding:0.4rem 0.6rem;border:1px solid var(--rule);border-radius:4px;flex:1;min-width:160px;">
+      <button class="danger-btn" style="background:var(--sage-bg);color:var(--sage);border-color:var(--sage);margin-top:0;" onclick="connectSync(document.getElementById('fbConfigInput').value, document.getElementById('syncCodeInput').value)">Connect</button>
+      ${syncConfig ? `<button class="danger-btn" style="margin-top:0;" onclick="disconnectSync()">Disconnect</button>` : ''}
+    </div>
+  </div>
   <div class="panel">
     <h2>Subject names</h2>
     ${subjRows}
