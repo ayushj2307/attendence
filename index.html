@@ -423,12 +423,18 @@ function computeStats(filterFn){
     const day = state.records[dateStr];
     for(const code in day){
       if(!stats[code]) continue;
-      const s = day[code];
-      stats[code].held++;
-      if(s==='present') stats[code].present++;
-      else if(s==='absent') stats[code].absent++;
-     
-    }
+     const s = day[code];
+if(s==='present') {
+  stats[code].present++;
+  stats[code].held++;
+}
+else if(s==='absent') {
+  stats[code].absent++;
+  stats[code].held++;
+}
+else if(s==='cancelled') {
+  stats[code].cancelled++;
+}
   }
   return stats;
 }
