@@ -256,8 +256,8 @@ const TIMETABLE = {
 };
 
 const DEFAULT_SUBJECTS = {
-  PSY1:'Psychology \u2013 Paper I',
-  POL1:'Political Science \u2013 Paper I',
+  PSY1:'Psychology \u2013 Paper I', PSY2:'Psychology \u2013 Paper II',
+  POL1:'Political Science \u2013 Paper I', POL2:'Political Science \u2013 Paper II',
   ENG:'English', AEC:'Ability Enhancement Course', VAC:'Value Added Course',
   IKS:'Indian Knowledge System', VOC:'Vocational Course', GE:'Generic Elective'
 };
@@ -466,6 +466,17 @@ function projectRecovery(code){
   return {status:'unreachable', needed};
 }
 
+function recoveryLectureCell(r){
+  if(r.status==='no-data') return '\u2014';
+  if(r.status==='ok') return `<span class="mini-stamp ok">0 \u00b7 already 75%+</span>`;
+  if(r.status==='unreachable') return `<span class="mini-stamp short">${r.needed}</span>`;
+  return `<span class="mini-stamp short">${r.needed}</span>`;
+}
+function recoveryDateCell(r){
+  if(r.status==='no-data' || r.status==='ok') return '\u2014';
+  if(r.status==='unreachable') return `<span style="color:var(--ink-faint);">beyond lookahead</span>`;
+  return prettyDate(r.date);
+}
 function recoveryLabel(r){
   if(r.status==='no-data') return '\u2014';
   if(r.status==='ok') return `<span class="mini-stamp ok">already 75%+</span>`;
@@ -537,7 +548,7 @@ function renderSubjects(){
     const barColor = pct===null ? 'var(--rule)' : (pct>=75 ? 'var(--sage)' : 'var(--red)');
     const stampCls = pct===null ? 'none' : (pct>=75 ? 'ok' : 'short');
     const stampTxt = pct===null ? 'no data' : (pct>=75 ? 'in order' : 'short');
-    const recovery = recoveryLabel(projectRecovery(code));
+    const r = projectRecovery(code);
     rows += `<tr>
       <td>${subjName(code)}<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--ink-faint);">${code}</div></td>
       <td>${s.held}</td>
@@ -548,17 +559,18 @@ function renderSubjects(){
         <span class="bar-wrap"><span class="bar-fill" style="width:${pct===null?0:pct}%;background:${barColor};"></span></span>
         <span class="mini-stamp ${stampCls}">${pct===null? '\u2014' : pct+'%'} &middot; ${stampTxt}</span>
       </td>
-      <td>${recovery}</td>
+      <td>${recoveryLectureCell(r)}</td>
+      <td>${recoveryDateCell(r)}</td>
     </tr>`;
   }
   return `
   <div class="panel">
     <h2>Subject-wise ledger</h2>
     <table class="ledger">
-      <thead><tr><th>Subject</th><th>Held</th><th>Present</th><th>Absent</th><th>Cancelled</th><th>Attendance</th><th>To reach 75%</th></tr></thead>
+      <thead><tr><th>Subject</th><th>Held</th><th>Present</th><th>Absent</th><th>Cancelled</th><th>Attendance</th><th>Lectures to 75%</th><th>Reaches 75% on</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <p style="font-size:0.72rem;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;margin-top:1rem;">75% is the usual University of Mumbai eligibility threshold. Cancelled lectures are excluded from the percentage. "To reach 75%" assumes every future lecture of that subject is attended with none cancelled, counted forward from the weekly timetable.</p>
+    <p style="font-size:0.72rem;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;margin-top:1rem;">75% is the usual University of Mumbai eligibility threshold. Cancelled lectures are excluded from the percentage. "Lectures to 75%" and "Reaches 75% on" assume every future lecture of that subject is attended with none cancelled, counted forward from the weekly timetable.</p>
   </div>`;
 }
 
@@ -594,19 +606,18 @@ function renderOverall(){
 }
 
 function renderRecoveryPanel(){
-  const stats = computeStats();
   const overallR = projectRecovery(null);
   let overallLine;
   if(overallR.status==='no-data') overallLine = `No lectures marked yet.`;
   else if(overallR.status==='ok') overallLine = `<span class="mini-stamp ok">Already at 75% or above.</span>`;
-  else if(overallR.status==='unreachable') overallLine = `<span class="mini-stamp short">Needs ${overallR.needed} more present lectures \u2014 further out than the lookahead window.</span>`;
-  else overallLine = `<span class="mini-stamp short">${overallR.needed} more lecture${overallR.needed===1?'':'s'} in a row, present, no absences \u2014 reachable by ${prettyDate(overallR.date)}.</span>`;
+  else if(overallR.status==='unreachable') overallLine = `<span class="mini-stamp short">Needs ${overallR.needed} more present lectures in a row \u2014 date falls beyond the lookahead window.</span>`;
+  else overallLine = `<span class="mini-stamp short">${overallR.needed} more lecture${overallR.needed===1?'':'s'} in a row, present, no absences \u2014 reaches 75% on ${prettyDate(overallR.date)}.</span>`;
 
   let subjRows = '';
   for(const code in state.subjects){
     const r = projectRecovery(code);
     if(r.status==='no-data') continue;
-    subjRows += `<tr><td>${subjName(code)}</td><td>${recoveryLabel(r)}</td></tr>`;
+    subjRows += `<tr><td>${subjName(code)}</td><td>${recoveryLectureCell(r)}</td><td>${recoveryDateCell(r)}</td></tr>`;
   }
 
   return `
@@ -614,7 +625,7 @@ function renderRecoveryPanel(){
     <h2>Path back to 75%</h2>
     <p style="font-size:0.85rem;color:var(--ink-soft);margin-top:0;">${overallLine}</p>
     ${subjRows ? `<table class="ledger" style="margin-top:0.6rem;">
-      <thead><tr><th>Subject</th><th>To reach 75%</th></tr></thead>
+      <thead><tr><th>Subject</th><th>Lectures to 75%</th><th>Reaches 75% on</th></tr></thead>
       <tbody>${subjRows}</tbody>
     </table>` : ''}
     <p style="font-size:0.72rem;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;margin-top:1rem;">Projections assume every remaining scheduled lecture is attended and none are cancelled, walked forward through the weekly timetable from today. Subjects already at 75% or with no records yet are marked accordingly.</p>

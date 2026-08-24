@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fyba-attendance-v2';
+const CACHE_NAME = 'fyba-attendance-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
