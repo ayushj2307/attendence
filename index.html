@@ -363,7 +363,6 @@ function applyRemoteState(data){
   applyingRemote = false;
 }
 
-    state.records = data.records || {};\n  state.holidays = data.holidays || {};
 async function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -375,7 +374,6 @@ async function loadState(){
     }
   }catch(e){
     console.log('No existing register found, starting fresh.');
-   state.records = parsed.records || {};\n      state.holidays = parsed.holidays || {};
   }
   loadSyncConfig();
   if(syncConfig) initFirebaseSync();
@@ -416,30 +414,7 @@ function setStatus(dateStr, code, status){
   scheduleSave();
   render();
 }
-function isHoliday(dateStr){
-  return !!state.holidays[dateStr];
-}
 
-function setHoliday(dateStr, reason='Holiday'){
-  state.holidays[dateStr] = reason || 'Holiday';
-  const periods = TIMETABLE[dayName(dateStr)] || [];
-  if(periods.length){
-    if(!state.records[dateStr]) state.records[dateStr] = {};
-    periods.forEach(([code]) => {
-      state.records[dateStr][code] = 'cancelled';
-    });
-  }
-  scheduleSave();
-  render();
-}
-
-function removeHoliday(dateStr){
-  delete state.holidays[dateStr];
-  scheduleSave();
-  render();
-}
-
-  
 function computeStats(filterFn){
   const stats = {};
   for(const code in state.subjects) stats[code] = {held:0, present:0, absent:0, cancelled:0};
@@ -448,11 +423,11 @@ function computeStats(filterFn){
     const day = state.records[dateStr];
     for(const code in day){
       if(!stats[code]) continue;
-     const s = day[code];
+      const s = day[code];
       stats[code].held++;
       if(s==='present') stats[code].present++;
       else if(s==='absent') stats[code].absent++;
-      else if(s==='cancelled') stats[code].cancelled++;
+     else if(s==='cancelled') stats[code].cancelled++;
     }
   }
   return stats;
@@ -493,7 +468,6 @@ function projectRecovery(code){
 
   while(days < maxDays){
     const periods = TIMETABLE[dayName(cursor)] || [];
-    const hits = isHoliday(cursor) ? 0 : (code ? periods.filter(([c])=>c===code).length : periods.length);
     const hits = code ? periods.filter(([c])=>c===code).length : periods.length;
 
     count += hits;
@@ -547,7 +521,6 @@ function subjName(code){
 function renderToday(){
   const day = dayName(selectedDate);
   const periods = TIMETABLE[day] || [];
-   const holiday = isHoliday(selectedDate);
   const dayRecords = state.records[selectedDate] || {};
   let rows = '';
   if(periods.length===0){
@@ -555,16 +528,10 @@ function renderToday(){
   }else{
     periods.forEach(([code,time])=>{
       const st = dayRecords[code];
-        const st = holiday ? 'cancelled' : dayRecords[code];
       rows += `<div class="period-row">
         <div class="p-time">${time}</div>
         <div class="p-subj">${subjName(code)}<span class="code">${code}</span></div>
         <div class="status-btns">
-         ${holiday
-            ? `<span class="mini-stamp none">CANCELLED · HOLIDAY</span>`
-            : `<button class="p ${st==='present'?'on':''}" onclick="setStatus('${selectedDate}','${code}','present')">Present</button>
-               <button class="a ${st==='absent'?'on':''}" onclick="setStatus('${selectedDate}','${code}','absent')">Absent</button>
-               <button class="c ${st==='cancelled'?'on':''}" onclick="setStatus('${selectedDate}','${code}','cancelled')">Cancelled</button>`}
           <button class="p ${st==='present'?'on':''}" onclick="setStatus('${selectedDate}','${code}','present')">Present</button>
           <button class="a ${st==='absent'?'on':''}" onclick="setStatus('${selectedDate}','${code}','absent')">Absent</button>
           <button class="c ${st==='cancelled'?'on':''}" onclick="setStatus('${selectedDate}','${code}','cancelled')">Cancelled</button>
@@ -583,13 +550,7 @@ function renderToday(){
         <button onclick="goToday()" style="width:auto;padding:0 10px;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;">Today</button>
       </div>
     </h2>
-     ${holiday ? `<div class="mini-stamp none" style="display:inline-block;margin-bottom:0.7rem;">HOLIDAY · ${state.holidays[selectedDate]}</div>` : ''}
     ${rows}
-    <div style="margin-top:0.9rem;display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
-      ${holiday
-        ? `<button class="danger-btn" style="margin-top:0;" onclick="removeHoliday('${selectedDate}')">Remove holiday</button>`
-        : `<button class="danger-btn" style="margin-top:0;" onclick="declareHoliday('${selectedDate}')">Declare this date a holiday</button>`}
-    </div>
     <div class="save-note" id="saveNote">&nbsp;</div>
   </div>`;
 }
@@ -620,22 +581,6 @@ function renderSubjects(){
     </tr>`;
   }
   return `
-  <div class="panel">
-    <h2>Holidays</h2>
-    <p style="font-size:0.85rem;color:var(--ink-soft);">Declare a date as a holiday. All scheduled lectures on that date are automatically marked Cancelled and excluded from attendance.</p>
-    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
-      <input type="date" id="holidayDateInput" style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;padding:0.35rem 0.5rem;border:1px solid var(--rule);border-radius:4px;">
-      <input type="text" id="holidayReasonInput" placeholder="Holiday name / reason" style="font-family:'Inter';font-size:0.85rem;padding:0.4rem 0.6rem;border:1px solid var(--rule);border-radius:4px;flex:1;min-width:180px;">
-      <button class="danger-btn" style="margin-top:0;" onclick="declareHolidayFromSettings()">Add holiday</button>
-    </div>
-    <div style="margin-top:1rem;">
-      ${Object.keys(state.holidays).sort().map(d=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:0.7rem;padding:0.5rem 0;border-bottom:1px solid var(--rule-soft);">
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;">${prettyDate(d)} · ${state.holidays[d]}</span>
-          <button class="danger-btn" style="margin-top:0;padding:0.3rem 0.6rem;" onclick="removeHoliday('${d}')">Remove</button>
-        </div>`).join('') || '<div class="empty-note">No holidays declared.</div>'}
-    </div>
-  </div>
   <div class="panel">
     <h2>Subject-wise ledger</h2>
     <table class="ledger">
@@ -782,25 +727,6 @@ function renderSettings(){
     <p style="font-size:0.85rem;color:var(--ink-soft);">Clears every marked lecture. Subject names and semester dates are kept.</p>
     <button class="danger-btn" onclick="resetRecords()">Clear all attendance records</button>
   </div>`;
-}
-function declareHoliday(dateStr){
-  const reason = prompt('Holiday name / reason (optional):', 'Holiday');
-  if(reason === null) return;
-  setHoliday(dateStr, reason.trim() || 'Holiday');
-}
-
-function declareHolidayFromSettings(){
-  const dateStr = document.getElementById('holidayDateInput')?.value;
-  const reason = document.getElementById('holidayReasonInput')?.value.trim() || 'Holiday';
-  if(!dateStr){
-    alert('Choose a date first.');
-    return;
-  }
-  if(isHoliday(dateStr)){
-    alert('That date is already declared as a holiday.');
-    return;
-  }
-  setHoliday(dateStr, reason);
 }
 
 function renameSubject(code, val){
