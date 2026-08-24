@@ -452,7 +452,7 @@ function projectRecovery(code){
   // (present+x)/(held+x) >= 0.75  =>  x >= 3*held - 4*present  (always a whole number here)
   const needed = 3*held - 4*present;
 
-  const maxDays = 1095; // safety cap: don't scan forward more than ~3 years
+  const maxDays = 10950; // safety cap: don't scan forward more than ~3 years
   let cursor = addDays(fmt(new Date()), 1);
   let count = 0, days = 0;
   while(days < maxDays){
